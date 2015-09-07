@@ -101,6 +101,14 @@ module Volt
       end
     end
 
+    # Dynamic sets options[:dynamic] to true for dynamic parameter queries
+    def dynamic(opts={})
+      @options[:dynamic] = true
+      @options[:dynamic_except] = opts[:except]
+      @options[:dynamic_callback] = opts[:callback]
+      return self
+    end
+
     def parent=(val)
       @options[:parent] = val
     end

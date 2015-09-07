@@ -1,6 +1,7 @@
 # The query tracker runs queries and then tracks the changes
 # that take place.
 class QueryTracker
+  attr_reader :live_query
   attr_accessor :results
 
   def initialize(live_query, data_store)
@@ -25,6 +26,7 @@ class QueryTracker
     # Update the current_ids
     @current_ids = @results.map { |r| r[:id] }
     @results_hash = Hash[@results.map { |r| [r[:id], r] }]
+
 
     process_changes(skip_channel)
   end

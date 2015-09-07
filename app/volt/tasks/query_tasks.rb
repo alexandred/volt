@@ -33,6 +33,23 @@ class QueryTasks < Volt::Task
     [initial_data, error]
   end
 
+  # update dynamic query
+
+  def update_query(collection, old_query, new_query)
+    live_query = @volt_app.live_query_pool.lookup(collection, old_query)
+
+    if @channel
+      @channel.user_id = Volt.current_user_id
+    end
+
+    if live_query.channels.size == 1 || live_query.channels.size == 0
+      live_query.update_query(new_query, @channel)
+    else
+      # TODO logic for more than one connected channel
+    end
+
+  end
+
   def initial_data
     data = live_query.initial_data
     data[:id] = data[:id].to_s

@@ -15,6 +15,10 @@ module Volt
 
       @getter      = getter
 
+      @query_history = []
+
+      @allow_reset = false
+
       # Listen for changes
       @computation = lambda do
         begin
@@ -39,6 +43,36 @@ module Volt
 
     # When a changed event happens, we update to the new size.
     def update(value)
+
+      # Check if query has dynamic parameters; if so, deal with it and prevent the binding from being reset
+      begin
+        if value.options[:dynamic]
+          # Don't update query on first render
+          if @query_history.empty?
+            @query_history << value.persistor.query_listener
+          else
+            @query_history << value.persistor.query_listener
+
+            old_query_listener = @query_history[0]
+
+            # Check for exceptions, TODO: this is heavily dependent on 'find' being the first query part, what if it isn't?
+            value.options[:dynamic_except].each do |exception|
+              if @query_history[-2].query[0][1][exception.to_s] != @query_history[-1].query[0][1][exception.to_s]
+                @allow_reset = true
+                @query_history = []
+                remove_listeners
+                value.options[:dynamic_callback].call
+              else
+                old_query_listener.update_query(@query_history[-1].query)
+              end
+            end
+          end
+        end
+      rescue => e
+        #print e
+        # probably not dynamic
+      end
+
       # Since we're checking things like size, we don't want this to be re-triggered on a
       # size change, so we run without tracking.
       Computation.run_without_tracking do
@@ -67,13 +101,18 @@ module Volt
           values_size    = values.size
         end
 
-        # Start over, re-create all nodes
-        (templates_size - 1).downto(0) do |index|
-          item_removed(index)
+        # Start over, re-create all nodes - ignore if dynamic and not first render
+        if @allow_reset || !(values.respond_to?(:options) && values.options[:dynamic])
+          @allow_reset = false
+
+          (templates_size - 1).downto(0) do |index|
+            item_removed(index)
+          end
+          0.upto(values_size - 1) do |index|
+            item_added(index)
+          end
         end
-        0.upto(values_size - 1) do |index|
-          item_added(index)
-        end
+
       end
     end
 

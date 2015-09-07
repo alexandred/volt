@@ -3,7 +3,8 @@ require_relative 'query_tracker'
 # Tracks a channel and a query on a collection.  Alerts
 # the listener when the data in the query changes.
 class LiveQuery
-  attr_reader :current_ids, :collection, :query
+  attr_reader :current_ids, :collection, :channels
+  attr_accessor :query, :query_tracker
 
   def initialize(pool, data_store, collection, query)
     @pool = pool
@@ -20,6 +21,12 @@ class LiveQuery
 
   def run(skip_channel = nil)
     @query_tracker.run(skip_channel)
+  end
+
+  def update_query(new_query, channel)
+    @query = new_query
+    add_channel(channel)
+    @query_tracker.run
   end
 
   def notify_removed(ids, skip_channel)
